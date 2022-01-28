@@ -49,7 +49,9 @@ func show() {
 				{"DeviceCache", device.Addr, "BatteryPercentRight"},
 			}
 			batteries := pp.GetAttrByNames(attrs)
-			battery = fmt.Sprintf("C:%v%%/L:%v%%/R:%v%%", batteries[0], batteries[1], batteries[2])
+			if len(batteries) == len(attrs[0])  {
+				battery = fmt.Sprintf("C:%v%%/L:%v%%/R:%v%%", batteries[0], batteries[1], batteries[2])
+			}
 		}
 
 		var subInfo, nextOP string

@@ -1,7 +1,9 @@
 package plist
 
 import (
+	"fmt"
 	"howett.net/plist"
+	"io"
 	"os"
 )
 
@@ -27,17 +29,31 @@ func NewPlist(filename string) (*Info, error) {
 // PlistFileName = "/Library/Preferences/com.apple.Bluetooth.plist"
 // [["DeviceCache", "e0-eb-40-d4-d2-e9", "BatteryPercent"]]
 func (i *Info) GetAttrByNames(attrKeys [][]string) []interface{} {
-	var attr interface{}
-	var mapattr map[string]interface{}
 	var res []interface{}
-
 	for _, condition := range attrKeys {
-		attr = i.PlistData
-		for _, c := range condition {
-			mapattr = attr.(map[string]interface{})
-			attr = mapattr[c]
+		// https://github.com/haoguanguan/bluetooth_flow/issues/2
+		attr, err := GetAttr(condition, i.PlistData)
+		if err != nil {
+			io.WriteString(os.Stderr, err.Error()+"\n")
+			continue
 		}
 		res = append(res, attr)
 	}
 	return res
+}
+
+func GetAttr(keys []string, attr interface{})  (interface{}, error) {
+	for _, c := range keys {
+		if attr == nil {
+			return nil, fmt.Errorf("no such keys %v", keys)
+		}
+
+		val, ok := attr.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("cannot parse keys %v", keys)
+		}
+
+		attr = val[c]
+	}
+	return attr, nil
 }
