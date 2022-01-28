@@ -30,11 +30,19 @@ func (i *Info) GetAttrByNames(attrKeys [][]string) []interface{} {
 	var attr interface{}
 	var mapattr map[string]interface{}
 	var res []interface{}
+	var ok bool
 
 	for _, condition := range attrKeys {
 		attr = i.PlistData
 		for _, c := range condition {
-			mapattr = attr.(map[string]interface{})
+			// https://github.com/haoguanguan/bluetooth_flow/issues/2
+			if attr == nil {
+				break
+			}
+			mapattr, ok = attr.(map[string]interface{})
+			if !ok {
+				break
+			}
 			attr = mapattr[c]
 		}
 		res = append(res, attr)
