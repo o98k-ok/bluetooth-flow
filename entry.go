@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/haoguanguan/bluetooth_flow/models"
-	"github.com/haoguanguan/bluetooth_flow/plist"
 	"github.com/haoguanguan/bluetooth_flow/system"
 	"github.com/urfave/cli/v2"
 	"os"
@@ -27,13 +26,6 @@ func show() {
 		return
 	}
 
-	pp, err := plist.NewPlist("/Library/Preferences/com.apple.Bluetooth.plist")
-	if err != nil {
-		items.Append(models.NewItem("ERROR", "init bluetooth plist failed", "", icons["Default"]))
-		fmt.Println(items.Encode())
-		return
-	}
-
 	for _, device := range system.GetAllBlueTooth() {
 		var iconPath string
 		if device.Product != "" {
@@ -41,19 +33,6 @@ func show() {
 		}
 
 		battery := device.BatteryLevel
-		// for airpods, need refill battery level by plist
-		if device.Product == "Headphones" {
-			attrs := [][]string{
-				{"DeviceCache", device.Addr, "BatteryPercentCase"},
-				{"DeviceCache", device.Addr, "BatteryPercentLeft"},
-				{"DeviceCache", device.Addr, "BatteryPercentRight"},
-			}
-			batteries := pp.GetAttrByNames(attrs)
-			if len(batteries) == len(attrs[0])  {
-				battery = fmt.Sprintf("C:%v%%/L:%v%%/R:%v%%", batteries[0], batteries[1], batteries[2])
-			}
-		}
-
 		var subInfo, nextOP string
 		if device.Status {
 			subInfo = fmt.Sprintf("Connected        %s", battery)
@@ -69,7 +48,7 @@ func show() {
 }
 
 func connect(addr string) {
-	command := fmt.Sprintf("./blueutil --connect %s", addr)
+	command := fmt.Sprintf("./blueutil --connect %s --info %s", addr, addr)
 	_, err := exec.Command("bash", "-c", command).CombinedOutput()
 	if err != nil {
 		fmt.Printf("connect bluetooth error %v\n", err)
@@ -77,7 +56,7 @@ func connect(addr string) {
 }
 
 func disconnect(addr string) {
-	command := fmt.Sprintf("./blueutil --disconnect %s", addr)
+	command := fmt.Sprintf("./blueutil --disconnect %s --info %s", addr, addr)
 	_, err := exec.Command("bash", "-c", command).CombinedOutput()
 	if err != nil {
 		fmt.Printf("disconnect bluetooth error %v\n", err)
