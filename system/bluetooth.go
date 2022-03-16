@@ -31,23 +31,34 @@ func GetAllBlueTooth() []models.BlueToothDevice {
 	res := make([]models.BlueToothDevice, 0, 3)
 
 	for _, dataType := range dataTypes {
-		deviceAll := dataType.(map[string]interface{})["devices_list"]
-		for _, device := range deviceAll.([]interface{}) {
-			for name, d := range device.(map[string]interface{}) {
-				info := d.(map[string]interface{})
+		res = append(res, FilterDevice(dataType.(map[string]interface{}), "device_connected")...)
+		res = append(res, FilterDevice(dataType.(map[string]interface{}), "device_not_connected")...)
+	}
+	return res
+}
 
-				device := models.BlueToothDevice{
-					Name:         name,
-					Addr:         strings.Replace(AsString(info, "device_address"), ":", "-", -1),
-					BatteryLevel: GetBattery(info),
-					Product:      AsString(info, "device_minorType"),
-					Status:       AsString(info, "device_connected") == "Yes",
-				}
-				if device.Product != "" {
-					res = append(res, device)
-				}
+func FilterDevice(dataType map[string]interface{}, key string) []models.BlueToothDevice {
+	res := make([]models.BlueToothDevice, 0, 3)
+
+	devices, ok := dataType[key].([]interface{})
+	if !ok {
+		return res
+	}
+
+	for _, device := range devices {
+		for name, d := range device.(map[string]interface{}) {
+			info := d.(map[string]interface{})
+
+			device := models.BlueToothDevice{
+				Name:         name,
+				Addr:         strings.Replace(AsString(info, "device_address"), ":", "-", -1),
+				BatteryLevel: GetBattery(info),
+				Product:      AsString(info, "device_minorType"),
+				Status:       key == "device_connected",
 			}
-
+			if device.Product != "" {
+				res = append(res, device)
+			}
 		}
 	}
 	return res
