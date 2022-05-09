@@ -31,8 +31,8 @@ func GetAllBlueTooth() []models.BlueToothDevice {
 	res := make([]models.BlueToothDevice, 0, 3)
 
 	for _, dataType := range dataTypes {
-		res = append(res, FilterDevice(dataType.(map[string]interface{}), "device_connected")...)
 		res = append(res, FilterDevice(dataType.(map[string]interface{}), "device_not_connected")...)
+		res = append(res, FilterDevice(dataType.(map[string]interface{}), "device_connected")...)
 	}
 	return res
 }
