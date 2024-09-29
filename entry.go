@@ -8,49 +8,8 @@ import (
 	"sync"
 
 	"github.com/haoguanguan/bluetooth_flow/device"
-	"github.com/haoguanguan/bluetooth_flow/models"
-	"github.com/haoguanguan/bluetooth_flow/system"
 	"github.com/o98k-ok/lazy/v2/alfred"
-	"github.com/urfave/cli/v2"
 )
-
-func show() {
-	// icon info
-	icons := map[string]string{
-		"Trackpad":   "./imgs/trackpad.png",
-		"Keyboard":   "./imgs/keyboard.png",
-		"Headphones": "./imgs/airpods.jpeg",
-		"Default":    "./imgs/default.png",
-	}
-
-	items := models.NewItems()
-	err := system.InitBlueTooth()
-	if err != nil {
-		items.Append(models.NewItem("ERROR", "init bluetooth failed", "", icons["Default"]))
-		fmt.Println(items.Encode())
-		return
-	}
-
-	for _, device := range system.GetAllBlueTooth() {
-		var iconPath string
-		if device.Product != "" {
-			iconPath = icons[device.Product]
-		}
-
-		battery := device.BatteryLevel
-		var subInfo, nextOP string
-		if device.Status {
-			subInfo = fmt.Sprintf("Connected        %s", battery)
-			nextOP = fmt.Sprintf("--disconnect %s", device.Addr)
-		} else {
-			subInfo = fmt.Sprintf("Disconnected     %s", battery)
-			nextOP = fmt.Sprintf("--connect %s", device.Addr)
-		}
-
-		items.Append(models.NewItem(device.Name, subInfo, nextOP, iconPath))
-	}
-	fmt.Println(items.Encode())
-}
 
 func connect(addr string) {
 	command := fmt.Sprintf("./blueutil --connect %s --info %s", addr, addr)
@@ -68,49 +27,12 @@ func disconnect(addr string) {
 	}
 }
 
-func Main() {
-	flags := []cli.Flag{
-		&cli.BoolFlag{
-			Name:    "show",
-			Aliases: []string{"s"},
-			Usage:   "show bluetooth device detail info",
-		},
-		&cli.StringFlag{
-			Name:    "connect",
-			Aliases: []string{"c"},
-			Usage:   "connect bluetooth by device addr",
-		},
-		&cli.StringFlag{
-			Name:    "disconnect",
-			Aliases: []string{"d"},
-			Usage:   "disconnect bluetooth by device addr",
-		},
+func bluetoothList() {
+	theme := os.Getenv("theme")
+	if theme == "" {
+		theme = "white"
 	}
 
-	app := &cli.App{
-		Flags: flags,
-		Action: func(context *cli.Context) error {
-			if context.IsSet("show") {
-				show()
-			}
-
-			if context.IsSet("connect") {
-				arg := context.String("connect")
-				connect(arg)
-			}
-
-			if context.IsSet("disconnect") {
-				arg := context.String("disconnect")
-				disconnect(arg)
-			}
-			return nil
-		},
-	}
-
-	app.Run(os.Args)
-}
-
-func main() {
 	groups := sync.WaitGroup{}
 	groups.Add(4)
 
@@ -124,7 +46,7 @@ func main() {
 		defer groups.Done()
 		devices, err = device.GetDeviceListByBlueutil()
 		if err != nil {
-			alfred.Log(err.Error())
+			alfred.Log("get device list by blueutil error: " + err.Error())
 			return
 		}
 	}()
@@ -133,7 +55,7 @@ func main() {
 		defer groups.Done()
 		profileDevices, err = device.GetDeviceListBySystemProfiler()
 		if err != nil {
-			alfred.Log(err.Error())
+			alfred.Log("get device list by system profiler error: " + err.Error())
 			return
 		}
 	}()
@@ -142,7 +64,7 @@ func main() {
 		defer groups.Done()
 		ioregDevices, err = device.GetDeviceListByIoreg()
 		if err != nil {
-			alfred.Log(err.Error())
+			alfred.Log("get device list by ioreg error: " + err.Error())
 			return
 		}
 	}()
@@ -151,7 +73,7 @@ func main() {
 		defer groups.Done()
 		plistDevices, err = device.GetDeviceListByPlist()
 		if err != nil {
-			alfred.Log(err.Error())
+			alfred.Log("get device list by plist error: " + err.Error())
 			return
 		}
 	}()
@@ -168,9 +90,8 @@ func main() {
 			v := device.NewNormal(&dd, profileDevice, ioregDevice, plistDevice)
 			blueDevices = append(blueDevices, v)
 		case profileDevice.MinorType == device.DeviceTypeAirpods:
-			v1 := device.NewAirPodLeft(&dd, profileDevice, ioregDevice, plistDevice)
-			v2 := device.NewAirPodRight(&dd, profileDevice, ioregDevice, plistDevice)
-			blueDevices = append(blueDevices, v1, v2)
+			v := device.NewAirPod(&dd, profileDevice, ioregDevice, plistDevice)
+			blueDevices = append(blueDevices, v)
 		case profileDevice.MinorType == device.DeviceTypeTrackpad:
 			v := device.NewTrackpad(&dd, profileDevice, ioregDevice, plistDevice)
 			blueDevices = append(blueDevices, v)
@@ -187,24 +108,19 @@ func main() {
 	for _, device := range blueDevices {
 		item := alfred.NewItem(device.GetName(), subTitle(device), device.GetAddress())
 		item.Icon = &alfred.Icon{
-			Path: getIcon(device, true),
+			Path: getIcon(device, theme),
 		}
 		items.Append(item)
 	}
 	fmt.Println(items.Encode())
 }
 
-func getIcon(d device.DeviceInterface, light bool) string {
+func getIcon(d device.DeviceInterface, theme string) string {
 	format := "./icons/%s/%s_1_%s_%s.png"
 
 	typ, _ := d.GetDeviceType()
 	if typ == device.DeviceTypeUnknown {
 		typ = "bluetooth"
-	}
-
-	mode := "white"
-	if light {
-		mode = "black"
 	}
 
 	ring := "0"
@@ -233,15 +149,44 @@ func getIcon(d device.DeviceInterface, light bool) string {
 	}
 	return fmt.Sprintf(format,
 		typ, strings.ToLower(typ),
-		mode, ring)
+		theme, ring)
 }
 
 func subTitle(device device.DeviceInterface) string {
-	connectIcon := "❎"
+	connectIcon := "📵"
 	if device.IsConnected() {
-		connectIcon = "✅"
+		connectIcon = "🟢"
 	}
 
-	bat, _ := device.GetBatteryLevel()
-	return fmt.Sprintf("Connected %s     Battery %d", connectIcon, bat)
+	return fmt.Sprintf("%s  %s", connectIcon, device.GetBatteryTextView())
+}
+
+func main() {
+	app := alfred.NewApp("bluetooth")
+
+	app.Bind("list", func(s []string) { bluetoothList() })
+	app.Bind("connect", func(s []string) {
+		if len(s) != 1 {
+			alfred.Log("connect error: not enough arguments")
+			return
+		}
+		devices, err := device.GetDeviceListByBlueutil()
+		if err != nil {
+			alfred.Log("get device list by blueutil error: " + err.Error())
+			return
+		}
+
+		device := devices.Get(s[0])
+		if device == nil {
+			alfred.Log("device not found: " + s[0])
+			return
+		}
+
+		if device.Connected {
+			disconnect(device.Address)
+		} else {
+			connect(device.Address)
+		}
+	})
+	app.Run(os.Args)
 }

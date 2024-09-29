@@ -1,6 +1,9 @@
 package device
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 type Trackpad struct {
 	Device1
@@ -28,4 +31,9 @@ func (t *Trackpad) GetBatteryLevel() (int, error) {
 
 func (t *Trackpad) GetDeviceType() (string, error) {
 	return DeviceTypeTrackpad, nil
+}
+
+func (t *Trackpad) GetBatteryTextView() string {
+	battery, _ := t.GetBatteryLevel()
+	return fmt.Sprintf("Battery: %d%%", battery)
 }

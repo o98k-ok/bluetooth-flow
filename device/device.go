@@ -27,6 +27,7 @@ var (
 )
 
 type DeviceInterface interface {
+	GetBatteryTextView() string
 	GetBatteryLevel() (int, error)
 	GetDeviceType() (string, error)
 	GetName() string
@@ -55,9 +56,19 @@ func (d *Device1) IsConnected() bool {
 	return d.Connected
 }
 
-func GetDeviceListByBlueutil() ([]Device1, error) {
-	c := "./blueutil --paired --format json"
-	cmd := exec.Command("bash", "-c", c)
+type Device1s []Device1
+
+func (d Device1s) Get(address string) *Device1 {
+	for _, device := range d {
+		if device.Address == address {
+			return &device
+		}
+	}
+	return nil
+}
+
+func GetDeviceListByBlueutil() (Device1s, error) {
+	cmd := exec.Command("bash", "-c", "./blueutil --paired --format json")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err

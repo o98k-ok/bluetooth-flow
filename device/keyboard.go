@@ -1,6 +1,9 @@
 package device
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 type Keyboard struct {
 	Device1
@@ -28,4 +31,9 @@ func (k *Keyboard) GetBatteryLevel() (int, error) {
 
 func (k *Keyboard) GetDeviceType() (string, error) {
 	return DeviceTypeKeyboard, nil
+}
+
+func (k *Keyboard) GetBatteryTextView() string {
+	battery, _ := k.GetBatteryLevel()
+	return fmt.Sprintf("Battery: %d%%", battery)
 }

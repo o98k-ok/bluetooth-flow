@@ -2,7 +2,6 @@ package device
 
 import (
 	"encoding/json"
-	"fmt"
 	"os/exec"
 	"strings"
 )
@@ -59,7 +58,7 @@ func GetTargetDeviceType(deviceType string) string {
 		return DeviceTypeAirpods
 	case "MobilePhone":
 		return DeviceTypeIphone
-	case "AppleTrackpad":
+	case "AppleTrackpad", "Magic Trackpad":
 		return DeviceTypeTrackpad
 	case "Keyboard":
 		return DeviceTypeKeyboard
@@ -108,10 +107,10 @@ func GetDeviceListBySystemProfiler() (Device2s, error) {
 					BatteryLevel: func() string {
 						switch v.MinorType {
 						case "Headphones":
-							l := strings.ReplaceAll(v.LeftBatteryLevel, "%", "")
-							r := strings.ReplaceAll(v.RightBatteryLevel, "%", "")
-							c := strings.ReplaceAll(v.CaseBatteryLevel, "%", "")
-							return fmt.Sprintf("%s,%s,%s", c, l, r)
+							l := strings.Replace(v.LeftBatteryLevel, "%", "", -1)
+							r := strings.Replace(v.RightBatteryLevel, "%", "", -1)
+							c := strings.Replace(v.CaseBatteryLevel, "%", "", -1)
+							return strings.Join([]string{c, l, r}, ",")
 						default:
 							return v.BatteryLevel
 						}

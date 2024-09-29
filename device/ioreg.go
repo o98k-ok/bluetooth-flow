@@ -60,5 +60,6 @@ func GetDeviceListByIoreg() (Device3s, error) {
 			DeviceAddress:  d.DeviceAddress,
 		})
 	}
+
 	return devices, nil
 }

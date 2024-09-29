@@ -15,3 +15,7 @@ func (n *Normal) GetDeviceType() (string, error) {
 func NewNormal(d *Device1, d2 *Device2, d3 *Device3, d4 *Device4) *Normal {
 	return &Normal{Device1: *d}
 }
+
+func (n *Normal) GetBatteryTextView() string {
+	return ""
+}

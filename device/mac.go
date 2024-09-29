@@ -2,15 +2,38 @@ package device
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"os/exec"
 )
 
 type Mac struct {
+	Battery int
 }
 
 func NewMac() *Mac {
-	return &Mac{}
+	// system_profiler SPPowerDataType -json 2
+	c := "system_profiler SPPowerDataType -json 2"
+	cmd := exec.Command("bash", "-c", c)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return &Mac{}
+	}
+	defer stdout.Close()
+
+	if err := cmd.Start(); err != nil {
+		return &Mac{}
+	}
+
+	var sppowerDataInfo sspowerDataInfo
+	if err := json.NewDecoder(stdout).Decode(&sppowerDataInfo); err != nil {
+		return &Mac{}
+	}
+	if len(sppowerDataInfo.SPPowerDataType) == 0 {
+		return &Mac{}
+	}
+	return &Mac{
+		Battery: sppowerDataInfo.SPPowerDataType[0].SppowerBatteryChargeInfo.SppowerBatteryStateOfCharge,
+	}
 }
 
 // {
@@ -43,27 +66,7 @@ type sppowerBatteryChargeInfo struct {
 }
 
 func (m *Mac) GetBatteryLevel() (int, error) {
-	// system_profiler SPPowerDataType -json 2
-	c := "system_profiler SPPowerDataType -json 2"
-	cmd := exec.Command("bash", "-c", c)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return 0, err
-	}
-	defer stdout.Close()
-
-	if err := cmd.Start(); err != nil {
-		return 0, err
-	}
-
-	var sppowerDataInfo sspowerDataInfo
-	if err := json.NewDecoder(stdout).Decode(&sppowerDataInfo); err != nil {
-		return 0, err
-	}
-	if len(sppowerDataInfo.SPPowerDataType) == 0 {
-		return 0, errors.New("no data")
-	}
-	return sppowerDataInfo.SPPowerDataType[0].SppowerBatteryChargeInfo.SppowerBatteryStateOfCharge, nil
+	return m.Battery, nil
 }
 
 func (m *Mac) GetDeviceType() (string, error) {
@@ -80,4 +83,9 @@ func (m *Mac) GetAddress() string {
 
 func (m *Mac) IsConnected() bool {
 	return true
+}
+
+func (m *Mac) GetBatteryTextView() string {
+	battery, _ := m.GetBatteryLevel()
+	return fmt.Sprintf("Battery: %d%%", battery)
 }
