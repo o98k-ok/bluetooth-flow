@@ -1,6 +1,8 @@
 # bluetooth workflow
 Alfred workflows for mac bluetooth. 🔋💎
 
+> Due to the confusion of Apple's configuration management, the current workflow cannot meet the needs of all Bluetooth devices. If you encounter a problem that the battery status cannot be displayed, you can refer to the source code for verification. Welcome to PR.
+
 ## Installation
 
 1. Download latest version from [release](https://github.com/o98k-ok/bluetooth_flow/releases)
